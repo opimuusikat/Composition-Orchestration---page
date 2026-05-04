@@ -961,11 +961,26 @@ body {
   margin-top: 0.3rem;
   opacity: 0.75;
 }
+
+/* ─── LANGUAGE TOGGLE ─── */
+.lang-bar{position:fixed;top:.9rem;right:1rem;z-index:9000;
+  display:flex;gap:.25rem;background:var(--card);
+  border:1px solid var(--border2);padding:.25rem .3rem;border-radius:4px;
+  box-shadow:0 2px 14px rgba(0,0,0,.5);}
+.lang-btn{background:none;border:none;cursor:pointer;font-size:1.15rem;
+  line-height:1;padding:.1rem .22rem;border-radius:3px;
+  opacity:.35;transition:opacity .2s,background .2s;}
+.lang-btn.active{opacity:1;background:var(--border2);}
+.lang-btn:hover:not(.active){opacity:.65;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.6/build/vexflow.js"></script>
 </head>
 <body>
 
+<div class="lang-bar">
+  <button class="lang-btn active" id="lb-en" onclick="setLang('en')" title="English">🇬🇧</button>
+  <button class="lang-btn"        id="lb-et" onclick="setLang('et')" title="Eesti">🇪🇪</button>
+</div>
 <!-- HEADER -->
 <div class="site-header">
   <div class="header-eyebrow">Academic Self-Study Programme · Interactive Curriculum</div>
@@ -1135,7 +1150,7 @@ body {
 <div class="levelup-banner" id="levelup-banner">
   <div class="levelup-banner-icon">⭐</div>
   <div class="levelup-banner-text">
-    <small>Level Up!</small>
+    <small data-en="Level Up!" data-et="Tase Tõusis!">Level Up!</small>
     <span id="levelup-text">You are now a Scholar</span>
   </div>
 </div>
@@ -1144,71 +1159,581 @@ body {
 // ═══════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════
+
+// ═══════════════════════════════════════════
+// LANGUAGE SYSTEM
+// ═══════════════════════════════════════════
+var CL = 'en'; // current language
+
+var TRANS = {
+en:{
+  eyebrow:'Academic Self-Study Programme · Interactive Curriculum',
+  sub:'Theory Foundation + Eleven Composition Modules + Six Orchestration Modules · Earn XP · Unlock Achievements · Track Your Streak',
+  levelLabel:'Current Level',
+  xpLabel:'Experience Points',
+  streakLabel:'Day Streak',
+  streakBegin:'Study today to begin',
+  streakCont:'days and counting!',
+  streakYesterday:'Study today to keep your streak!',
+  materialLabel:'Course Materials',
+  materialTitle:'Drive Folder',
+  materialHint:'Open ↗',
+  achTitle:'🏆 Achievements',
+  achEarned:'earned',
+  resetBtn:'Reset All Progress',
+  resetConfirm:'Reset ALL progress, XP, achievements and streak? This cannot be undone.',
+  curriculumPct:'% curriculum complete',
+  levelWord:'Level',
+  xpTo:'XP to Level',
+  gateLabel:'EVALUATION GATE',
+  locked:'🔒 Complete previous module to unlock',
+  studyCards:'📚 Study Cards',
+  allStudied:'✓ All studied',
+  studiedOf:'studied',
+  quizLockedBtn:'📝 Quiz locked — flip all cards first',
+  quizLockedTitle:'Flip all cards first to unlock quiz',
+  takeQuiz:'📝 Take Quiz',
+  quizPassNote:'✓ Quiz passed — gate items now unlocked',
+  quizLockNote:'🔒 Pass the quiz to unlock gate items',
+  tapHint:'Tap to reveal answer',
+  closeDeck:'Done — close cards',
+  prev:'Prev',
+  next:'Next',
+  ofWord:'of',
+  nextQ:'Next Question →',
+  seeResults:'See Results →',
+  scoreColon:'Score:',
+  quizPassed:'Quiz Passed',
+  quizFailed:'Try Again',
+  perfectScore:'✦ Perfect Score ✦',
+  passMsg:'Your Knowledge Checks (K1–K3) are now unlocked. Complete them, then submit to your tutor for the gate review.',
+  failMsg:'Study the cards again and retry in',
+  continueBtn:'Continue →',
+  chipAllStudied:'📚 All studied',
+  chipPerfect:'✦ Perfect',
+  chipPassed:'✓ Quiz passed',
+  chipCooldown:'⏳ Cooldown',
+  chipPending:'📝 Quiz pending',
+  seenLabel:'SEEN',
+  trueOpt:'True',
+  falseOpt:'False',
+  phases:['Theory Foundation','Composition Fundamentals',
+    'Counterpoint & Form','Choral & Vocal Writing',
+    'Extended Harmony','The Complete Work',
+    'Orchestration — Deep Dive'],
+  sectionCoreReading:'Core Reading',
+  sectionReading:'Reading Assignments',
+  sectionScoreListen:'Score & Listening Study',
+  sectionComposition:'Composition Exercises',
+  sectionScore:'Score Study',
+  sectionCapstone:'Capstone Composition Project',
+  sectionCoreAdler:'Core Reading — Adler',
+  sectionCoreAdlerRK:'Core Reading — Adler & Rimsky-Korsakov',
+  xpEarned:'+75 XP earned',
+  achUnlocked:'🏆 Achievement Unlocked: ',
+  levelUp:'Level Up!',
+  youAreNow:'You are now a ',
+},
+et:{
+  eyebrow:'Akadeemiline Iseõppimisprogramm · Interaktiivne Õppekava',
+  sub:'Teooria Alused + Üksteist Kompositsiooni Moodulit + Kuus Orkestratsioonimoodulit · Teeni XP · Ava Saavutusi · Jälgi Seeriat',
+  levelLabel:'Praegune Tase',
+  xpLabel:'Kogemuspunktid',
+  streakLabel:'Päevade Seeria',
+  streakBegin:'Õpi täna, et alustada',
+  streakCont:'päeva järjest!',
+  streakYesterday:'Õpi täna, et seeria jätkuks!',
+  materialLabel:'Kursuse Materjalid',
+  materialTitle:'Drive\'i Kaust',
+  materialHint:'Ava ↗',
+  achTitle:'🏆 Saavutused',
+  achEarned:'teenitud',
+  resetBtn:'Lähtesta Kogu Edu',
+  resetConfirm:'Lähtestada KOGU edu, XP, saavutused ja seeria? Seda ei saa tagasi võtta.',
+  curriculumPct:'% õppekavast läbitud',
+  levelWord:'Tase',
+  xpTo:'XP tasemeni',
+  gateLabel:'HINDAMISVÄRAV',
+  locked:'🔒 Avamiseks lõpeta eelmine moodul',
+  studyCards:'📚 Õppekaardid',
+  allStudied:'✓ Kõik õpitud',
+  studiedOf:'õpitud',
+  quizLockedBtn:'📝 Viktoriin lukus — pöörake kõik kaardid esmalt',
+  quizLockedTitle:'Pöörake kõik kaardid, et viktoriin avada',
+  takeQuiz:'📝 Alusta Viktoriini',
+  quizPassNote:'✓ Viktoriin läbitud — värava ülesanded on avatud',
+  quizLockNote:'🔒 Läbi viktoriin, et värav avada',
+  tapHint:'Puuduta vastuse nägemiseks',
+  closeDeck:'Valmis — sulge kaardid',
+  prev:'Eelmine',
+  next:'Järgmine',
+  ofWord:'/',
+  nextQ:'Järgmine küsimus →',
+  seeResults:'Vaata tulemusi →',
+  scoreColon:'Tulemus:',
+  quizPassed:'Viktoriin Läbitud',
+  quizFailed:'Proovi Uuesti',
+  perfectScore:'✦ Täiuslik Tulemus ✦',
+  passMsg:'Teadmiste Kontrollid (K1–K3) on nüüd avatud. Täida need käsitsi, seejärel esita juhendajale värava ülevaatamiseks.',
+  failMsg:'Õpi kaardid uuesti ja proovi uuesti',
+  continueBtn:'Jätka →',
+  chipAllStudied:'📚 Kõik õpitud',
+  chipPerfect:'✦ Täiuslik',
+  chipPassed:'✓ Viktoriin läbitud',
+  chipCooldown:'⏳ Ooteaeg',
+  chipPending:'📝 Viktoriin ootel',
+  seenLabel:'NÄHTUD',
+  trueOpt:'Õige',
+  falseOpt:'Vale',
+  phases:['Teooria Alused','Kompositsiooni Alused',
+    'Kontrapunkt ja Vorm','Koorali- ja Vokaalkirjutus',
+    'Laiendatud Harmoonia','Täielik Teos',
+    'Orkestratsioon — Süvendatult'],
+  sectionCoreReading:'Põhilugemine',
+  sectionReading:'Lugemisülesanded',
+  sectionScoreListen:'Noodianalüüs ja Kuulamine',
+  sectionComposition:'Kompositsiooniharjutused',
+  sectionScore:'Noodianalüüs',
+  sectionCapstone:'Lõputöö Kompositsiooniprojekt',
+  sectionCoreAdler:'Põhilugemine — Adler',
+  sectionCoreAdlerRK:'Põhilugemine — Adler ja Rimsky-Korsakov',
+  xpEarned:'+75 XP teenitud',
+  achUnlocked:'🏆 Saavutus Avatud: ',
+  levelUp:'Tase Tõusis!',
+  youAreNow:'Oled nüüd ',
+},
+};
+function t(k){ return (TRANS[CL]||TRANS.en)[k] || TRANS.en[k] || k; }
+
+function setLang(l){
+  CL = l;
+  try{ localStorage.setItem('compLang', l); }catch(e){}
+  document.getElementById('lb-en').classList.toggle('active', l==='en');
+  document.getElementById('lb-et').classList.toggle('active', l==='et');
+  document.querySelectorAll('[data-en]').forEach(el=>{
+    el.textContent = l==='et' ? (el.dataset.et||el.dataset.en) : el.dataset.en;
+  });
+  renderStreak(); renderAchievements(); render();
+}
+
 const LEVELS = [
-  { lvl:1, name:'Apprentice',     icon:'🎵', min:0,    max:200  },
-  { lvl:2, name:'Student',        icon:'📖', min:200,  max:450  },
-  { lvl:3, name:'Scholar',        icon:'🖊️', min:450,  max:750  },
-  { lvl:4, name:'Craftsman',      icon:'⚒️', min:750,  max:1050 },
-  { lvl:5, name:'Composer',       icon:'🎼', min:1050, max:1350 },
-  { lvl:6, name:'Contrapuntist',  icon:'🎶', min:1350, max:1650 },
-  { lvl:7, name:'Orchestrator',   icon:'🎻', min:1650, max:1950 },
-  { lvl:8, name:'Master Composer',icon:'👑', min:1950, max:9999 },
+  { lvl:1, name:'Apprentice',    nameEt:'Õpipoiss',     icon:'🎵', min:0,    max:200  },
+  { lvl:2, name:'Student',       nameEt:'Tudeng',        icon:'📖', min:200,  max:450  },
+  { lvl:3, name:'Scholar',       nameEt:'Teadlane',        icon:'🖊️', min:450,  max:750  },
+  { lvl:4, name:'Craftsman',     nameEt:'Meister',      icon:'⚒️', min:750,  max:1050 },
+  { lvl:5, name:'Composer',      nameEt:'Helilooja',       icon:'🎼', min:1050, max:1350 },
+  { lvl:6, name:'Contrapuntist', nameEt:'Kontrapunktist',  icon:'🎶', min:1350, max:1650 },
+  { lvl:7, name:'Orchestrator',  nameEt:'Orkestraator',   icon:'🎻', min:1650, max:1950 },
+  { lvl:8, name:'Master Composer', nameEt:'Meisterhelilooja',icon:'👑', min:1950, max:9999 },
 ];
 
 const ACHIEVEMENTS = [
-  { id:'gate_o1', icon:'🎻', name:'String Orchestrator', desc:'Complete the Strings module gate',               trigger:'gate_o1' },
-  { id:'gate_o2', icon:'🪗', name:'Wind Orchestrator',  desc:'Complete the Woodwinds module gate',            trigger:'gate_o2' },
-  { id:'gate_o3', icon:'📯', name:'Brass Orchestrator', desc:'Complete the Brass module gate',                trigger:'gate_o3' },
-  { id:'gate_o4', icon:'🥁', name:'Percussion Scribe',  desc:'Complete the Percussion module gate',           trigger:'gate_o4' },
-  { id:'gate_o5', icon:'🎹', name:'Harp Architect',     desc:'Complete the Harp & Piano module gate',         trigger:'gate_o5' },
-  { id:'gate_o6', icon:'🎼', name:'Master Orchestrator',desc:'Complete the Balance & Combination module gate',trigger:'gate_o6' },
-  { id:'gate_t1', icon:'🎼', name:'Interval Master',   desc:'Complete the Intervals module',             trigger:'gate_t1'  },
-  { id:'gate_t2', icon:'🎵', name:'Scale Architect',   desc:'Complete the Scales & Keys module',          trigger:'gate_t2'  },
-  { id:'gate_t3', icon:'🎹', name:'Chord Builder',     desc:'Complete the Triads & Chords module',        trigger:'gate_t3'  },
-  { id:'gate_t4', icon:'📐', name:'Harmony Reader',    desc:'Complete the Cadences module',               trigger:'gate_t4'  },
-  { id:'gate_t5', icon:'🔗', name:'Voice Guide',       desc:'Complete the Voice Leading module',          trigger:'gate_t5'  },
-  { id:'first_ink',   icon:'🖊️', name:'First Ink',         desc:'Check your very first item',                trigger:'first_item'          },
-  { id:'reader_m1',   icon:'📚', name:'Deep Reader',        desc:'All readings in Module 1 done',             trigger:'readings_m1'         },
-  { id:'gate_m1',     icon:'🎵', name:'The Opening Note',   desc:'Pass the Module 1 evaluation gate',         trigger:'gate_m1'             },
-  { id:'gate_m2',     icon:'🎶', name:'Voice Untangled',    desc:'Pass the Module 2 evaluation gate',         trigger:'gate_m2'             },
-  { id:'gate_m3',     icon:'⚡', name:'Master of Tension',  desc:'Pass the Module 3 evaluation gate',         trigger:'gate_m3'             },
-  { id:'gate_m4',     icon:'🏛️', name:'The Architect',      desc:'Pass the Module 4 evaluation gate',         trigger:'gate_m4'             },
-  { id:'gate_m5',     icon:'🎤', name:'Choral Voice',       desc:'Pass the Module 5 evaluation gate',         trigger:'gate_m5'             },
-  { id:'gate_m6',     icon:'🎻', name:'The Orchestrator',   desc:'Pass the Module 6 evaluation gate',         trigger:'gate_m6'             },
-  { id:'gate_m7',     icon:'🔮', name:'Harmonic Explorer',  desc:'Pass the Module 7 evaluation gate',         trigger:'gate_m7'             },
-  { id:'gate_mc1',    icon:'🎤', name:'The Choral Craftsman', desc:'Pass the Module 6 evaluation gate',         trigger:'gate_mc1'            },
-  { id:'gate_mc2',    icon:'🎵', name:'The Arranger',        desc:'Pass the Module 7 evaluation gate',         trigger:'gate_mc2'            },
-  { id:'gate_mc3',    icon:'📋', name:'The Complete Arranger',desc:'Pass the Module 8 evaluation gate',         trigger:'gate_mc3'            },
-  { id:'complete',    icon:'🎓', name:'Complete Composer',  desc:'Pass all 11 evaluation gates',              trigger:'all_gates'           },
-  { id:'streak_7',    icon:'🔥', name:'Week Warrior',       desc:'Maintain a 7-day study streak',             trigger:'streak_7'            },
-  { id:'streak_30',   icon:'🌟', name:'Dedicated Scholar',  desc:'Maintain a 30-day study streak',            trigger:'streak_30'           },
-  { id:'level_3',     icon:'⭐', name:'Rising Scholar',     desc:'Reach Level 3',                             trigger:'level_3'             },
-  { id:'halfway',     icon:'🌙', name:'Halfway There',       desc:'Pass 4 module gates',                       trigger:'gates_4'             },
+  { id:'gate_o1', icon:'🎻', name:'String Orchestrator', nameEt:'Keelpillide Orkestraator', descEt:'Lõpeta keelpillide mooduli värav', desc:'Complete the Strings module gate',               trigger:'gate_o1' },
+  { id:'gate_o2', icon:'🪗', name:'Wind Orchestrator', nameEt:'Puupuhkpillide Orkestraator', descEt:'Lõpeta puupuhkpillide mooduli värav',  desc:'Complete the Woodwinds module gate',            trigger:'gate_o2' },
+  { id:'gate_o3', icon:'📯', name:'Brass Orchestrator', nameEt:'Vaskpuhkpillide Orkestraator', descEt:'Lõpeta vaskpuhkpillide mooduli värav', desc:'Complete the Brass module gate',                trigger:'gate_o3' },
+  { id:'gate_o4', icon:'🥁', name:'Percussion Scribe', nameEt:'Löökpillide Kirjutaja', descEt:'Lõpeta löökpillide mooduli värav',  desc:'Complete the Percussion module gate',           trigger:'gate_o4' },
+  { id:'gate_o5', icon:'🎹', name:'Harp Architect', nameEt:'Harfi Arhitekt', descEt:'Lõpeta harfi ja klaveri mooduli värav',     desc:'Complete the Harp & Piano module gate',         trigger:'gate_o5' },
+  { id:'gate_o6', icon:'🎼', name:'Master Orchestrator', nameEt:'Meisterorkestraator', descEt:'Lõpeta tasakaalu mooduli värav',desc:'Complete the Balance & Combination module gate',trigger:'gate_o6' },
+  { id:'gate_t1', icon:'🎼', name:'Interval Master', nameEt:'Intervallide Meister', descEt:'Lõpeta intervallide moodul',   desc:'Complete the Intervals module',             trigger:'gate_t1'  },
+  { id:'gate_t2', icon:'🎵', name:'Scale Architect', nameEt:'Helistike Arhitekt', descEt:'Lõpeta helistike moodul',   desc:'Complete the Scales & Keys module',          trigger:'gate_t2'  },
+  { id:'gate_t3', icon:'🎹', name:'Chord Builder', nameEt:'Akordide Ehitaja', descEt:'Lõpeta kolmkõlade moodul',     desc:'Complete the Triads & Chords module',        trigger:'gate_t3'  },
+  { id:'gate_t4', icon:'📐', name:'Harmony Reader', nameEt:'Harmoonia Lugeja', descEt:'Lõpeta kadentside moodul',    desc:'Complete the Cadences module',               trigger:'gate_t4'  },
+  { id:'gate_t5', icon:'🔗', name:'Voice Guide', nameEt:'Häälte Juht', descEt:'Lõpeta häältejuhtimise moodul',       desc:'Complete the Voice Leading module',          trigger:'gate_t5'  },
+  { id:'first_ink',   icon:'🖊️', name:'First Ink', nameEt:'Esimene Tint', descEt:'Märgi oma esimene ülesanne',         desc:'Check your very first item',                trigger:'first_item'          },
+  { id:'reader_m1',   icon:'📚', name:'Deep Reader', nameEt:'Sügav Lugeja', descEt:'Kõik lugemised moodulis 1 tehtud',        desc:'All readings in Module 1 done',             trigger:'readings_m1'         },
+  { id:'gate_m1',     icon:'🎵', name:'The Opening Note', nameEt:'Avakord', descEt:'Läbi mooduli 1 hindamisvärav',   desc:'Pass the Module 1 evaluation gate',         trigger:'gate_m1'             },
+  { id:'gate_m2',     icon:'🎶', name:'Voice Untangled', nameEt:'Hääled Vabaks', descEt:'Läbi mooduli 2 hindamisvärav',    desc:'Pass the Module 2 evaluation gate',         trigger:'gate_m2'             },
+  { id:'gate_m3',     icon:'⚡', name:'Master of Tension', nameEt:'Pinge Meister', descEt:'Läbi mooduli 3 hindamisvärav',  desc:'Pass the Module 3 evaluation gate',         trigger:'gate_m3'             },
+  { id:'gate_m4',     icon:'🏛️', name:'The Architect', nameEt:'Arhitekt', descEt:'Läbi mooduli 4 hindamisvärav',      desc:'Pass the Module 4 evaluation gate',         trigger:'gate_m4'             },
+  { id:'gate_m5',     icon:'🎤', name:'Choral Voice', nameEt:'Koorilaul', descEt:'Läbi mooduli 5 hindamisvärav',       desc:'Pass the Module 5 evaluation gate',         trigger:'gate_m5'             },
+  { id:'gate_m6',     icon:'🎻', name:'The Orchestrator', nameEt:'Orkestraator', descEt:'Läbi mooduli 6 hindamisvärav',   desc:'Pass the Module 6 evaluation gate',         trigger:'gate_m6'             },
+  { id:'gate_m7',     icon:'🔮', name:'Harmonic Explorer', nameEt:'Harmooniline Avastaja', descEt:'Läbi mooduli 7 hindamisvärav',  desc:'Pass the Module 7 evaluation gate',         trigger:'gate_m7'             },
+  { id:'gate_mc1',    icon:'🎤', name:'The Choral Craftsman', nameEt:'Koorikirjutaja Meister', descEt:'Läbi mooduli 6 hindamisvärav', desc:'Pass the Module 6 evaluation gate',         trigger:'gate_mc1'            },
+  { id:'gate_mc2',    icon:'🎵', name:'The Arranger', nameEt:'Seadistaja', descEt:'Läbi mooduli 7 hindamisvärav',        desc:'Pass the Module 7 evaluation gate',         trigger:'gate_mc2'            },
+  { id:'gate_mc3',    icon:'📋', name:'The Complete Arranger', nameEt:'Täielik Seadistaja', descEt:'Läbi mooduli 8 hindamisvärav',desc:'Pass the Module 8 evaluation gate',         trigger:'gate_mc3'            },
+  { id:'complete',    icon:'🎓', name:'Complete Composer', nameEt:'Täielik Helilooja', descEt:'Läbi kõik 11 hindamisväravat',  desc:'Pass all 11 evaluation gates',              trigger:'all_gates'           },
+  { id:'streak_7',    icon:'🔥', name:'Week Warrior', nameEt:'Nädala Võitleja', descEt:'Säilita 7-päevane õppimisseeria',       desc:'Maintain a 7-day study streak',             trigger:'streak_7'            },
+  { id:'streak_30',   icon:'🌟', name:'Dedicated Scholar', nameEt:'Pühendunud Teadlane', descEt:'Säilita 30-päevane õppimisseeria',  desc:'Maintain a 30-day study streak',            trigger:'streak_30'           },
+  { id:'level_3',     icon:'⭐', name:'Rising Scholar', nameEt:'Tõusev Teadlane', descEt:'Jõua tasemele 3',     desc:'Reach Level 3',                             trigger:'level_3'             },
+  { id:'halfway',     icon:'🌙', name:'Halfway There', nameEt:'Poolel Teel', descEt:'Läbi 4 mooduli väravat',       desc:'Pass 4 module gates',                       trigger:'gates_4'             },
 ];
 
 const GATE_MESSAGES = {
-  o1: { title:'Strings Internalized', sub:'Orch. Module 1 Complete', body:'You now know which register works and which kills the sound. The double bass is not a bass guitar. The viola is not a small cello. Write for instruments as they ARE, not as you imagine them.' },
-  o2: { title:'Woodwinds Demystified', sub:'Orch. Module 2 Complete', body:'Transposition is a tool, not a trap — if you know the rules. The clarinet break, the flute\'s hollow low register, the oboe\'s resistance: these are not obstacles but colours. Use them deliberately.' },
-  o3: { title:'Brass Mastered', sub:'Orch. Module 3 Complete', body:'Brass power is not a compositional achievement — it is a compositional responsibility. The orchestra does not need every brass instrument playing at every climax. Restraint is what makes the climax matter.' },
-  o4: { title:'Percussion Understood', sub:'Orch. Module 4 Complete', body:'The glockenspiel sounds two octaves higher than written. The timpani cannot retune in one beat. These are not technicalities — they are the difference between a playable score and an embarrassing rehearsal.' },
-  o5: { title:'Harp & Piano Unlocked', sub:'Orch. Module 5 Complete', body:'The harp is not a piano with a different shape. Its pedal system is a compositional constraint that demands planning before a note is written. Composers who ignore this produce physically impossible music.' },
-  o6: { title:'Balance Achieved', sub:'Orch. Module 6 Complete', body:'Orchestral balance is not luck — it is the result of assigning the right dynamic to the right instrument in the right register. You now have the analytical vocabulary to diagnose and fix any balance problem.' },
-  t1: { title:'Intervals Internalized', sub:'Theory Module 1 Complete', body:'Every chord, every suspension, every voice-leading rule is made of intervals. You have the atomic unit. Name any interval on the staff without counting — that is the standard.' },
-  t2: { title:'Scales & Keys Mapped', sub:'Theory Module 2 Complete', body:'You now understand the infrastructure of tonal music. Every melody, every modulation, every key change begins with scale knowledge. This is not theory — it is grammar.' },
-  t3: { title:'Chords Built From the Ground Up', sub:'Theory Module 3 Complete', body:'Triads and seventh chords are the vocabulary of harmony. You can now build any chord from any root, in any inversion. The rest of this curriculum is using them with intention.' },
-  t4: { title:'Cadences & Roman Numerals Mastered', sub:'Theory Module 4 Complete', body:'You can now read the structural punctuation of tonal music. Identifying a cadence type tells you where the phrase breathes, where it arrives, and where it defers. This is how composers think.' },
-  t5: { title:'Voice Leading Rules Internalized', sub:'Theory Module 5 Complete', body:'Forbidden parallels, leading-tone resolution, doubling rules — these are not arbitrary restrictions. They are the physics of how independent voices remain distinct. You now write voices, not blocks.' },
-  m1: { title:'The Eye Opens', sub:'Module 1 Gate Cleared', body:'You have begun thinking like a composer — not just about notes, but about why they exist. The motive is your atomic unit. Guard it.', badge:'The Opening Note' },
-  m2: { title:'Voices Freed', sub:'Module 2 Gate Cleared', body:'Your inner voices now have their own logic. The dependency on blocked harmony is broken. From here, every line you write carries its own weight.', badge:'Voice Untangled' },
-  m3: { title:'Tension Mastered', sub:'Module 3 Gate Cleared', body:'Dissonance is no longer a mistake to avoid — it is a tool you now command. The suspension is yours. The resolution is yours. Use them with intention.', badge:'Master of Tension' },
-  m4: { title:'Architecture Complete', sub:'Module 4 Gate Cleared', body:'You have built a room, not just a phrase. You understand that form is not a container — it is an argument. The listener owes you nothing; you must earn their attention bar by bar.', badge:'The Architect' },
-  m5: { title:'The Choir Speaks', sub:'Module 5 Gate Cleared', body:'You now hear your choir from the inside. Every breath, every range limit, every leap that must be prepared — these are no longer constraints. They are the craft.', badge:'Choral Voice' },
-  m6: { title:'The Orchestra Answers', sub:'Module 6 Gate Cleared', body:'Strings and brass are no longer abstract. Their physical reality — bow speed, valve resistance, endurance — now lives in your notation choices.', badge:'The Orchestrator' },
-  m7: { title:'New Harmonies', sub:'Module 7 Gate Cleared', body:'You have crossed into the 20th century with your eyes open. Tonal gravity is a choice now, not a given. Every chord carries its own justification.', badge:'Harmonic Explorer' },
-  mc1: { title:'The Craft is Real', sub:'Module 6 Gate Cleared', body:'You have moved beyond intuition into architecture. Ades has given you a system: every doubling is a decision, every voicing a choice with acoustic consequences. You now write voices, not blocks.', badge:'The Choral Craftsman' },
-  mc2: { title:'The Arranger Speaks', sub:'Module 7 Gate Cleared', body:'You have a vocabulary now. Ostinato, canon, counter-melody, descant, SAB, SSA — these are no longer abstractions. They are tools you can reach for. The question is when and why, not how.', badge:'The Arranger' },
-  mc3: { title:'The Plan Becomes Music', sub:'Module 8 Gate Cleared', body:'You now understand that arrangement begins before a note is written. The introduction is always last. The ending grows from the body. Every decision serves the material — not the arranger\'s ego.', badge:'The Complete Arranger' },
-  m8: { title:'The Complete Composer', sub:'Curriculum Complete', body:'You have done what most music teachers never attempt: you have thought systematically, from the inside, about why music is shaped the way it is. This is not the end — it is the foundation.', badge:'Complete Composer' },
+  o1: { titleEt:'Keelpillid Omandatud', subEt:'Orch. Moodul 1 Lõpetatud', title:'Strings Internalized', sub:'Orch. Module 1 Complete', body:'You now know which register works and which kills the sound. The double bass is not a bass guitar. The viola is not a small cello. Write for instruments as they ARE, not as you imagine them.' },
+  o2: { titleEt:'Puupuhkpillid Selged', subEt:'Orch. Moodul 2 Lõpetatud', title:'Woodwinds Demystified', sub:'Orch. Module 2 Complete', body:'Transposition is a tool, not a trap — if you know the rules. The clarinet break, the flute\'s hollow low register, the oboe\'s resistance: these are not obstacles but colours. Use them deliberately.' },
+  o3: { titleEt:'Vaskpuhkpillid Valdatud', subEt:'Orch. Moodul 3 Lõpetatud', title:'Brass Mastered', sub:'Orch. Module 3 Complete', body:'Brass power is not a compositional achievement — it is a compositional responsibility. The orchestra does not need every brass instrument playing at every climax. Restraint is what makes the climax matter.' },
+  o4: { titleEt:'Löökpillid Selged', subEt:'Orch. Moodul 4 Lõpetatud', title:'Percussion Understood', sub:'Orch. Module 4 Complete', body:'The glockenspiel sounds two octaves higher than written. The timpani cannot retune in one beat. These are not technicalities — they are the difference between a playable score and an embarrassing rehearsal.' },
+  o5: { titleEt:'Harf ja Klaver Avatud', subEt:'Orch. Moodul 5 Lõpetatud', title:'Harp & Piano Unlocked', sub:'Orch. Module 5 Complete', body:'The harp is not a piano with a different shape. Its pedal system is a compositional constraint that demands planning before a note is written. Composers who ignore this produce physically impossible music.' },
+  o6: { titleEt:'Tasakaal Saavutatud', subEt:'Orch. Moodul 6 Lõpetatud', title:'Balance Achieved', sub:'Orch. Module 6 Complete', body:'Orchestral balance is not luck — it is the result of assigning the right dynamic to the right instrument in the right register. You now have the analytical vocabulary to diagnose and fix any balance problem.' },
+  t1: { titleEt:'Intervallid Omandatud', subEt:'Teooria Moodul 1 Lõpetatud', title:'Intervals Internalized', sub:'Theory Module 1 Complete', body:'Every chord, every suspension, every voice-leading rule is made of intervals. You have the atomic unit. Name any interval on the staff without counting — that is the standard.' },
+  t2: { titleEt:'Helistikud Kaardistatud', subEt:'Teooria Moodul 2 Lõpetatud', title:'Scales & Keys Mapped', sub:'Theory Module 2 Complete', body:'You now understand the infrastructure of tonal music. Every melody, every modulation, every key change begins with scale knowledge. This is not theory — it is grammar.' },
+  t3: { titleEt:'Akordid Ehitatud Alusest', subEt:'Teooria Moodul 3 Lõpetatud', title:'Chords Built From the Ground Up', sub:'Theory Module 3 Complete', body:'Triads and seventh chords are the vocabulary of harmony. You can now build any chord from any root, in any inversion. The rest of this curriculum is using them with intention.' },
+  t4: { titleEt:'Kadentsid Valdatud', subEt:'Teooria Moodul 4 Lõpetatud', title:'Cadences & Roman Numerals Mastered', sub:'Theory Module 4 Complete', body:'You can now read the structural punctuation of tonal music. Identifying a cadence type tells you where the phrase breathes, where it arrives, and where it defers. This is how composers think.' },
+  t5: { titleEt:'Häältejuhtimise Reeglid Omandatud', subEt:'Teooria Moodul 5 Lõpetatud', title:'Voice Leading Rules Internalized', sub:'Theory Module 5 Complete', body:'Forbidden parallels, leading-tone resolution, doubling rules — these are not arbitrary restrictions. They are the physics of how independent voices remain distinct. You now write voices, not blocks.' },
+  m1: { titleEt:'Silm Avaneb', subEt:'Moodul 1 Värav Läbitud', title:'The Eye Opens', sub:'Module 1 Gate Cleared', body:'You have begun thinking like a composer — not just about notes, but about why they exist. The motive is your atomic unit. Guard it.', badge:'The Opening Note' },
+  m2: { titleEt:'Hääled Vabastatud', subEt:'Moodul 2 Värav Läbitud', title:'Voices Freed', sub:'Module 2 Gate Cleared', body:'Your inner voices now have their own logic. The dependency on blocked harmony is broken. From here, every line you write carries its own weight.', badge:'Voice Untangled' },
+  m3: { titleEt:'Pinge Valdatud', subEt:'Moodul 3 Värav Läbitud', title:'Tension Mastered', sub:'Module 3 Gate Cleared', body:'Dissonance is no longer a mistake to avoid — it is a tool you now command. The suspension is yours. The resolution is yours. Use them with intention.', badge:'Master of Tension' },
+  m4: { titleEt:'Arhitektuur Valmis', subEt:'Moodul 4 Värav Läbitud', title:'Architecture Complete', sub:'Module 4 Gate Cleared', body:'You have built a room, not just a phrase. You understand that form is not a container — it is an argument. The listener owes you nothing; you must earn their attention bar by bar.', badge:'The Architect' },
+  m5: { titleEt:'Koor Räägib', subEt:'Moodul 5 Värav Läbitud', title:'The Choir Speaks', sub:'Module 5 Gate Cleared', body:'You now hear your choir from the inside. Every breath, every range limit, every leap that must be prepared — these are no longer constraints. They are the craft.', badge:'Choral Voice' },
+  m6: { titleEt:'Orkester Vastab', subEt:'Moodul 6 Värav Läbitud', title:'The Orchestra Answers', sub:'Module 6 Gate Cleared', body:'Strings and brass are no longer abstract. Their physical reality — bow speed, valve resistance, endurance — now lives in your notation choices.', badge:'The Orchestrator' },
+  m7: { titleEt:'Uued Harmooniad', subEt:'Moodul 7 Värav Läbitud', title:'New Harmonies', sub:'Module 7 Gate Cleared', body:'You have crossed into the 20th century with your eyes open. Tonal gravity is a choice now, not a given. Every chord carries its own justification.', badge:'Harmonic Explorer' },
+  mc1: { titleEt:'Meisterlikkus On Reaalne', subEt:'Moodul 6 Värav Läbitud', title:'The Craft is Real', sub:'Module 6 Gate Cleared', body:'You have moved beyond intuition into architecture. Ades has given you a system: every doubling is a decision, every voicing a choice with acoustic consequences. You now write voices, not blocks.', badge:'The Choral Craftsman' },
+  mc2: { titleEt:'Seadistaja Räägib', subEt:'Moodul 7 Värav Läbitud', title:'The Arranger Speaks', sub:'Module 7 Gate Cleared', body:'You have a vocabulary now. Ostinato, canon, counter-melody, descant, SAB, SSA — these are no longer abstractions. They are tools you can reach for. The question is when and why, not how.', badge:'The Arranger' },
+  mc3: { titleEt:'Plaan Saab Muusikaks', subEt:'Moodul 8 Värav Läbitud', title:'The Plan Becomes Music', sub:'Module 8 Gate Cleared', body:'You now understand that arrangement begins before a note is written. The introduction is always last. The ending grows from the body. Every decision serves the material — not the arranger\'s ego.', badge:'The Complete Arranger' },
+  m8: { titleEt:'Täielik Helilooja', subEt:'Õppekava Lõpetatud', title:'The Complete Composer', sub:'Curriculum Complete', body:'You have done what most music teachers never attempt: you have thought systematically, from the inside, about why music is shaped the way it is. This is not the end — it is the foundation.', badge:'Complete Composer' },
+};
+
+
+// ───────────────────────────────────────────
+// ESTONIAN LABELS FOR MODULES
+// ───────────────────────────────────────────
+const MOD_ET = {
+  t1:{ title:'Intervallid', subtitle:'Pooltoonid, Terviktoonid, Kvaliteet ja Inversioon',
+    tags:["Alfredʼi Teooria Alused — Üksused 1–3, 10–11","Idioodiʼ Juhend — 6. ptk","Intervallide tuvastamine ja kõrvaõpe"],
+    secs:['Põhilugemine'],
+    items:[
+      "Alfredʼi Teooria Alused — Üksused 1–3: Pooltoonid, terviktoonid, kromaatiline skaala, enharmoonilised noodid",
+      "Alfredʼi Teooria Alused — Üksused 10–11: Intervallid — suurus, kvaliteet (täiuslik, suur, väike, suurendatud, vähendatud)",
+      "Idioodiʼ Muusikateooria Juhend — 6. peatükk: Intervallide tuvastamine ja loendamine",
+    ],
+    gate:["Teadmiste Kontroll K1: Tuvasta 8 kirjutatud intervalli (suurus JA kvaliteet) veata",
+      "Teadmiste Kontroll K2: Esita iga antud intervalli inversioon — selgita 9-reeglit ja kvaliteedi muutust",
+      "✦ Enesehindamine: Läbi Intervallide viktoriin ≥90% tulemusega enne jätkamist",
+    ]},
+  t2:{ title:'Helistikud ja Võtmetähised', subtitle:'Duur, Moll, Moodused ja Kvintiring',
+    tags:["Alfredʼi Teooria Alused — Üksused 4–9, 12–17","Idioodiʼ Juhend — 7.–8. ptk","Kvintiring; võtmetähised"],
+    secs:['Põhilugemine'],
+    items:[
+      "Alfredʼi Teooria Alused — Üksused 4–9: Duuriskaala struktuur (T-T-S-T-T-T-S); võtmetähised",
+      "Alfredʼi Teooria Alused — Üksused 12–17: Naturaalne, harmooniline ja meloodiline moll; relatiivne ja paralleelmoll",
+      "Idioodiʼ Juhend — 7.–8. peatükk: Kvintiring; võtmetähiste tuvastamine; mooduste ülevaade",
+    ],
+    gate:["Teadmiste Kontroll K1: Kirjuta iga küsitud duur- või naturaalse molli skaala peast — märgi kõik pooltoonid",
+      "Teadmiste Kontroll K2: Tuvasta helistik antud võtmetähise järgi; esita relatiivne moll/duur",
+      "✦ Enesehindamine: Läbi Helistike ja Võtmete viktoriin ≥90% tulemusega enne jätkamist",
+    ]},
+  t3:{ title:'Kolmkõlad ja Septakordid', subtitle:'Akordide Ehitamine: Tüübid, Pöörded ja Diatoonilised Funktsioonid',
+    tags:["Alfredʼi Teooria Alused — Üksused 18–23","Idioodiʼ Juhend — 9.–10. ptk","Neli kolmkõlatüüpi; septakordid; pöörded"],
+    secs:['Põhilugemine'],
+    items:[
+      "Alfredʼi Teooria Alused — Üksused 18–20: Neli kolmkõlatüüpi (duur, moll, suurendatud, vähendatud); põhiasend ja pöörded",
+      "Alfredʼi Teooria Alused — Üksused 21–23: Septakordid — dominantseptakord, duuriseptakord, molliseptakord, vähendatud septakord",
+      "Idioodiʼ Juhend — 9.–10. peatükk: Diatoonilised kolmkõlad duuris ja mollis; akordide tuvastamine muusikalises kontekstis",
+    ],
+    gate:["Teadmiste Kontroll K1: Ehita iga küsitud kolmkõlatüüp igalt alusnooti — kõik neli tüüpi põhiasendis ja mõlemas pöördes",
+      "Teadmiste Kontroll K2: Kirjuta kõik diatoonilised kolmkõlad C-duuris ja a-naturaalses mollis rooma numbritega",
+      "✦ Enesehindamine: Läbi Kolmkõlade ja Septakordide viktoriin ≥90% tulemusega enne jätkamist",
+    ]},
+  t4:{ title:'Kadentsid ja Rooma Numbrid', subtitle:'Struktuurne Kirjavahemärk, Harmooniline Analüüs ja Figuurne Bass',
+    tags:["Alfredʼi Teooria Alused — Üksused 24–27","Idioodiʼ Juhend — 11.–12. ptk","TAK, LAK, AK, DK, PK; figuurne bass; harmooniline rütm"],
+    secs:['Põhilugemine'],
+    items:[
+      "Alfredʼi Teooria Alused — Üksused 24–25: Kadentsitüübid (TAK, LAK, AK, DK, PK) noodinäidetega",
+      "Alfredʼi Teooria Alused — Üksused 26–27: Rooma numbrite analüüs; figuurse bassi alused; kadentsiaalne 6/4",
+      "Idioodiʼ Juhend — 11.–12. peatükk: Harmooniline progressioon; kadentside tuvastamine repertuaaris; harmooniline rütm",
+    ],
+    gate:["Teadmiste Kontroll K1: Märgi viis kadentsi antud katkendist — esita tüüp, rooma numbrid ja põhjendus",
+      "Teadmiste Kontroll K2: Kirjuta TAK ja petlikadents neljahäälses SATB-s igas küsitud helistikus",
+      "✦ Enesehindamine: Läbi Kadentside ja Rooma Numbrite viktoriin ≥90% tulemusega enne jätkamist",
+    ]},
+  t5:{ title:'Häältejuhtimise Alused', subtitle:'SATB Ulatused, Liikumistüübid, Paralleelid ja Kaheksakordamise Reeglid',
+    tags:["Alfredʼi Teooria Alused — Üksused 28–30","Idioodiʼ Juhend — 13. ptk","Keelatud paralleelid; juhtheli; kaheksakordamine"],
+    secs:['Põhilugemine'],
+    items:[
+      "Alfredʼi Teooria Alused — Üksused 28–29: Häältejuhtimise reeglid — paralleelsed kvindid/oktavid, häälte ristamine, häälte kattumine",
+      "Alfredʼi Teooria Alused — Üksus 30: Kaheksakordamise reeglid SATB-s; juhtheli lahendamine; suurendatud sekundi käsitlemine",
+      "Idioodiʼ Juhend — 13. peatükk: Liikumistüübid (paralleelne, vastand-, sarnane, kaldliikumine); vahekauguse reeglid SATB-s",
+    ],
+    gate:["Teadmiste Kontroll K1: Tuvasta ja paranda kolm häältejuhtimise viga antud 4-taktilises SATB katkendis",
+      "Teadmiste Kontroll K2: Selgita, miks paralleelsed täiuslikud kvindid ja oktavid on keelatud — akustiline põhjendus",
+      "✦ Enesehindamine: Läbi Häältejuhtimise viktoriin ≥90% tulemusega — seejärel jätka Mooduliga 01",
+    ]},
+  m1:{ title:'Helilooja Pilk', subtitle:'Motiiv, Fraas ja Väikese Arhitektuur',
+    tags:['Belkin ptk. 1–2, Lisa A','Copland: Rütm, Meloodia, Harmoonia'],
+    secs:['Lugemisülesanded','Noodianalüüs ja Kuulamine','Kompositsiooniharjutused'],
+    items:[
+      'Belkin — 1. peatükk: Motiiv (sh sarnasuse skaala ja motiivne ekslemine)',
+      'Belkin — 2. peatükk: Fraas (Fraasi struktuur)',
+      'Belkin — Lisa A: Visandustamise meetod',
+      'Copland — Rütm, Meloodia ja Harmoonia peatükid (kolm kuulamisplaani)',
+      'Aktiivne kuulamine: Beethoven Sümfoonia nr 7 — Sissejuhatus (motiviline analüüs)',
+      'Aktiivne kuulamine: Sibelius Sümfoonia nr 4, III osa (fraasi ebastabiilsus)',
+      'Hr. 1A: 8-taktiline üksiku hääle fraas (üks motiiv, kolm varianti) + kirjalik annotatsioon',
+      'Hr. 1B: „Nõrk" fraas + muudetud versioon koos võrdleva analüüsiga',
+    ],
+    gate:['Teadmiste Kontroll K1: Motiiv vs. uus idee — selgita sarnasuse skaalat omaenda sõnadega',
+      'Teadmiste Kontroll K2: Kolm kuulamisplaani — põhjenda nende tähtsust heliloojale',
+      'Teadmiste Kontroll K3: Diagnoosi katkenud fraas Belkini 2. peatüki raamistiku abil',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 1A)',
+    ]},
+  m2:{ title:'Iseseisev Hääl', subtitle:'Kahe häälega, Esimese ja Teise Liigi Kontrapunkt',
+    tags:['Fux: Liigid 1–2, Kaks häält','Rimsky-Korsakov: Hääled','Copland: Tekstuur'],
+    secs:['Lugemisülesanded','Kompositsiooniharjutused'],
+    items:[
+      'Fux — Eessõna ja Manni Tõlkija Sissejuhatus',
+      'Fux — I raamat, 1. ptk: Esimene liik, kaks häält (Noot noodi vastu)',
+      'Fux — I raamat, 2. ptk: Teine liik, kaks häält (Kaks poolnooti tervenoodi vastu)',
+      'Rimsky-Korsakov — II osa: Vokaalpaindlikkus, ulatus ja praktilised piirangud',
+      'Copland — Muusikaline tekstuur (polüfooniline vs. homofooniline)',
+      'Hr. 2A: Esimene liik kontrapunkt Fuxi CF kohal Dooria, Früügia ja Miksolüüdia (annoteeritud)',
+      'Hr. 2B 1. osa: Teise liigi harjutus (omaenda CF, 8+ takti, Dooria) annoteeritud',
+      'Hr. 2B 2. osa: Lisa altohääl (2. liik) Hr. 1A soprani alla + kirjalik refleksioon',
+    ],
+    gate:['Teadmiste Kontroll K1: Miks paralleelsed täiuslikud konsonansid hävitavad häälte iseseisvuse?',
+      'Teadmiste Kontroll K2: Kaks tingimust 2. liigi dissonantsi jaoks — annoteeritud näide',
+      'Teadmiste Kontroll K3: Rimsky-Korsakovi vokaalse iseseisvuse põhimõtted — tähendus koorikirjutusele',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 2A ja 2B)',
+    ]},
+  m3:{ title:'Dissonants kui Arhitektuur', subtitle:'Kolmas–Viies Liik ja Hüpe Kolme Häälde',
+    tags:['Fux: Liigid 3–5','Fux: Kolm häält','Persichetti: ptk. 1–2'],
+    secs:['Lugemisülesanded','Noodianalüüs','Kompositsiooniharjutused'],
+    items:[
+      'Fux — 3. ptk: Kolmas liik (Neli veerandnooti; nota cambiata)',
+      'Fux — 4. ptk: Neljas liik — Sünkopatsioon ja ligatura (kõik suspensioonitüübid)',
+      'Fux — 5. ptk: Viies liik — Floridne kontrapunkt',
+      'Fux — Kolm häält, 1. ptk: Noot noodi vastu kolmes hääles',
+      'Belkin — 1. ptk revisiteeritud: Motiivne Ekslemine ja „neutraalsed osad" (Bachi Allemande analüüs)',
+      'Noodid + heli: Bach Inventsioon nr 1 C-duuris, BWV 772 — kaardista suspensionid, läbiminenoodid, häälte pausid',
+      'Hr. 3A: Neli neljanda liigi harjutust (7–6, 4–3, 9–8, 2–3 bass) P/S/R annoteeritud',
+      'Hr. 3B 1. osa: Viienda liigi floridne tükk omaenda CF kohal (sh 2 suspensiooni + nota cambiata)',
+      'Hr. 3B 2. osa: Lisa tenor (esimene liik) Hr. 2B kahehäälsele visandile → kolmehäälne SAT',
+    ],
+    gate:['Teadmiste Kontroll K1: Nota cambiata — tingimused, õige vs. vale annoteeritud näide',
+      'Teadmiste Kontroll K2: Vali kaks suspensiooni — põhjenda nende ekspressiivset iseloomu',
+      'Teadmiste Kontroll K3: Fuxi kolmehäälsuse kaheksakordamise reeglid — akustiline põhjendus',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 3A ja 3B)',
+    ]},
+  m4:{ title:'Ruumi Ehitamine', subtitle:'Väikesed Vormid — Üheosaline, Binaarne ja Ternaarne',
+    tags:['Belkin: ptk. 5–9','Copland: Vorm'],
+    secs:['Lugemisülesanded','Noodianalüüs','Kompositsiooniharjutused'],
+    items:[
+      'Belkin — 5. ptk: Fraasigrupid ja kadentside hierarhia',
+      'Belkin — 6. ptk: Esitlemine — Periood ja Fraasigrupid',
+      'Belkin — 7. ptk: Üheosalised vormid (preluuditüübid)',
+      'Belkin — 8. ptk: Ternaarne vorm (ABA)',
+      'Belkin — 9. ptk: Binaarne vorm (ebastabiilsus ja tegevuse kasv)',
+      'Noodikaart: Beethoven Sümfoonia nr 7, III osa — kaardista kõik sektsioonipiired enne Belkini analüüsi lugemist',
+      'Noodianalüüs: Schuberti Ländler op. 171 nr 3 — tuvasta küsimus/vastus fraas ja kadentsi erinevus',
+      'Hr. 4A: Täielik ABA ternaarne vorm SAT-le — ehitatud Hr. 3B materjalist + kirjalik noodikaart',
+      'Hr. 4B: Analüütiline annotatsioon ühele teosele sinu õpperepertuaarist (kadentside hierarhia, vorm, kõrgpunkt)',
+    ],
+    gate:['Teadmiste Kontroll K1: Binaarse vormi teise sektsiooni ebastabiilsus — kolm parameetrit + argument',
+      'Teadmiste Kontroll K2: B-sektsiooni kontrast vs. täiesti erinev — kompositsiooniline mehhanism',
+      'Teadmiste Kontroll K3: Tuvasta ja annoteerige üks üle-kirjavahemärgistatud hetk Hr. 4A-s koos revisjoniga',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 4A + 4B)',
+    ]},
+  m5:{ title:'Vokaalorkestratsioon I', subtitle:'Kooridele Kirjutamine — Ulatus, Tekstuur ja Tasakaal',
+    tags:['Belkin: Kooride Kirjutamine','Rimsky-Korsakov: II osa','Adler: Vokaalkirjutus'],
+    secs:['Lugemisülesanded','Kompositsiooniharjutused'],
+    items:[
+      'Belkin — Koorile Komponeerimine: ulatused, hingeõhk, amatöör vs. professionaal piirangud',
+      'Rimsky-Korsakov — II osa täielikult: häälitüübid, paindlikkus, dueti/trio/kvarteti reeglid',
+      'Adler — Koorile ja Vokaalile Kirjutamise peatükk: registrid ja teksti seadmise põhimõtted',
+      'Hr. 5A: Laienda Hr. 4A ABA vorm täielikuks SATB-ks — rakenda kõiki kooride kirjutamise piiranguid',
+      'Hr. 5B: Lühike SATB katkend amatöörkoori jaoks — teadlik ulatus lihtsustamine, hingamine, tekstuuri kontrast',
+    ],
+    gate:['Teadmiste Kontroll K1: Spetsiifilised piirangud — amatöör vs. poolprofessionaali koorikirjutus',
+      'Teadmiste Kontroll K2: Rimsky-Korsakovi dueti reeglid — kokkuvõte näidetega',
+      'Teadmiste Kontroll K3: Kuidas teksti rütm määrab fraasi pikkuse (Belkin + R-K süntees)',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 5A ja 5B)',
+    ]},
+  mc1:{ title:'Koorise Partiikirjutuse Meisterlikkus', subtitle:'Ulatused · Tihe/Lahtine Seade · Kaheksakordamise Reeglid · Partiikirjutuse Seadused',
+    tags:['Ades ptk. 1–2, 5–6','SATB Koorikirjutus','Häältejuhtimine'],
+    secs:['Lugemisülesanded','Noodianalüüs','Kompositsiooniharjutused'],
+    items:[
+      'Ades 1. ptk — Partiikirjutuse põhimõtted: ulatused, meloodiline liikumine, rasked intervallid, kaheksakordamise reeglid',
+      'Ades 2. ptk — Neljahäälne kirjutus: tihe/lahtine seade, traditsiooniline vs. poppstiil, saateta vs. saatega SATB',
+      'Ades 5. ptk — Kahehäälne kirjutus: SA, SB, TB kombinatsioonid; kahe häälega harmoonia põhimõtted',
+      'Ades 6. ptk — Unisoonis Kirjutamine: iseloom, sobiv materjal, saate roll unisonitekstuuris',
+      'Analüüsi Bachi koraali oma repertuaarist: märgi tihe ja lahtine seade; ringi kõik kaheksakordamise valikud',
+      'Leia kaks unisono katkendid oma koori repertuaarist. Diagnoosi kasutades Adese 6. ptk',
+      'Hr. mc1A: Harmoneeri 8-taktiline meloodia SATB-le järgides Adese kaheksakordamise ja häältejuhtimise reegleid',
+      'Hr. mc1B: Kirjuta saatega SA kahehäälne katkend (8 takti). Klaverisaade peab andma puuduva harmoonilise bassiliini',
+      'Hr. mc1C: Kirjuta 8-taktiline unisono katkend klaverisaatega. Vali materjal, mille iseloom õigustab unisonitekstuurar',
+    ],
+    gate:['Teadmiste Kontroll K1: Defineeri tihe vs. lahtine seade (Ades 1. ptk). Selgita akustilistel ja esteetilistel põhjustel',
+      'Teadmiste Kontroll K2: Loetle viis ohtlikku meloodilist intervalli Adese 1. ptk-st. Põhjenda miks iga neist on ohtlik',
+      'Teadmiste Kontroll K3: Diagnoosi kolm häältejuhtimise või kaheksakordamise viga antud 4-taktilises SATB katkendis',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. mc1A — SATB Harmoniseerimine)',
+    ]},
+  mc2:{ title:'Koori Seadistamise Tehnikad', subtitle:'Kolmeosaline · Mitmeosaline · Kontrapunktilised Võtted · Erihäälrühmad',
+    tags:['Ades ptk. 4, 7–12','SAB · SSA · Meeskoor','Kaanon · Ostinato · Diskant'],
+    secs:['Lugemisülesanded','Noodianalüüs','Kompositsiooniharjutused'],
+    items:[
+      'Ades 4. ptk — Kolmehäälne kirjutus: SAT, ATB, SAB saatega ja ilma; kaks häälestamistüüpi kolmehäälses segakirjutuses',
+      'Ades 7. ptk — Mitme Partii Kirjutus: meloodia kaheksakordamine paralleelliikumises, laialivalguv seade, meloodia sisehääles',
+      'Ades 8. ptk — Eritehnoloogiad: vokaalne figuratsioon, ostinato, pedaalipunkt; millal ja kuidas iga neist toimib',
+      'Ades 9. ptk — Kontrapunktilised tehnikad: kaanooniline kirjutus, imitatiivne kirjutus, vastumeloodia, diskant',
+      'Ades 10.–12. ptk — Erihäälrühmad: SAB/SB koolide segakooridele; SSA, SSAA, SA sopranodele; TTB, TBB, TTBB meestele',
+      'Leia kanoon oma repertuaarist — analüüsi sisseastumise intervalli, ajavahemikku sisseastumiste vahel, range vs. vaba',
+      'Analüüsi üht SSA ja üht SAB partituuri oma raamatukogust: Kuidas helistiku valik erineb SATB-st?',
+      'Leia näide ostinaatosaatega kooritööst. Analüüsi: millist rütmilist/harmoonilist funktsiooni see täidab?',
+      'Hr. mc2A: Kirjuta 8-taktiline SAB katkend sobiv ülikooli algklasside segakoorile. Rakenda Adese ulatuse piiranguid',
+      'Hr. mc2B: Kirjuta 4-taktiline kaanooniline katkend kahele häälele (nt SA kaanon oktavis, üks takt vahet)',
+      'Hr. mc2C: Kirjuta 8-taktiline katkend kasutades vokaalset figuratsiooni ühes hääles teisele vastandi meloodia vastu',
+    ],
+    gate:['Teadmiste Kontroll K1: Defineeri ja erista kolm kontrapunktilist tehnikat Adese 9. ptk-st (nt range kaanon, vaba imitation, vastumeloodia)',
+      'Teadmiste Kontroll K2: Esita ja põhjenda SSA helistiku transpositsiooni reegel (Ades 11. ptk)',
+      'Teadmiste Kontroll K3: Miks on SAB spetsiifiliselt väärtuslik koolide segakooridele? Millised on selle piirangud?',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. mc2A — SAB Katkend)',
+    ]},
+  mc3:{ title:'Seadistuse Planeerimine ja Lõpetamine', subtitle:'Sissejuhatused · Lõpud · Modulatsioon · Stiil · Täielik Protsess',
+    tags:['Ades ptk. 3, 13–14, 16–20','Seadistuse Planeerimine','Jazz · Rock · Saade'],
+    secs:['Lugemisülesanded','Noodianalüüs','Kompositsiooniharjutused'],
+    items:[
+      'Ades 3. ptk — Saated: tüübid, stiilid, harmoonilised ja rütmilised rollid; saatestiil määrab seadistuse iseloomu',
+      'Ades 13.–14. ptk — Helistiku/Tempo Muutused ja Sissejuhatused ja Lõpud: modulatsioonivahendid, sissejuhatuse tüübid, lõputehnikad',
+      'Ades 16.–17. ptk — Seadistuste Planeerimine ja Hindamine: täielik planeerimisprotsess, noodistus- ja transpositsioonikaalutlused',
+      'Ades 18.–20. ptk — Koor Instrumentaalrühmadega ja Hiljutised Suundumused: bänd ja orkestri kombinatsioonid, jazz-, rock-koori stiil',
+      'Võta üks teos oma koorirepertuaarist ja analüüsi sissejuhatust ja lõppu kasutades Adese 14. ptk klassifikatsioonisüsteemi',
+      'Leia modulatsioon kooriteoses, mida tead. Tuvasta spetsiifilise modulatsioonivahend, mida Ades kasutaks selle kirjeldamiseks',
+      'Hr. mc3A: Kirjuta sissejuhatus (4–8 takti) olemasolevale kooriteosele oma repertuaarist, mis on tuletataud selle temaatilisest materjalist',
+      'Hr. mc3B: Täida Adese planeerimiskontrolllnimekiri 16–32 taktilisele seadistusele oma valitud teosest',
+      'Hr. mc3C: Kirjuta 8 takti jazz-mõjulist koorit teksuuri SATB-le. Kasuta lähedast swing-seadet (Ades 19.–20. ptk stiil)',
+    ],
+    gate:['Teadmiste Kontroll K1: Esita Adese sissejuhatuste peamine reegel (sõnasõnalt või lähimalt parafraasilt)',
+      'Teadmiste Kontroll K2: Klassifitseeri kolm erinevat sissejuhatuse tüüpi Adese 14. ptk-st repertuaari näidetega',
+      'Teadmiste Kontroll K3: Kirjeldage koori seadistuse täielikku planeerimisprotsessi nagu Ades 16. ptk kirjeldab',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. mc3B — Täielik Seadistuse Plaan)',
+    ]},
+  m6:{ title:'Instrumentaalne Orkestratsioon I', subtitle:'Keelpillid ja Vaskpuhkpillid — Idioom, Ulatus ja Ansambli Tasakaal',
+    tags:['Adler: Keelpillid ptk. 1–5','Adler: Vaskpuhkpillid ptk. 6–9','Rimsky-Korsakov: I osa'],
+    secs:['Lugemisülesanded','Kompositsiooniharjutused'],
+    items:[
+      'Adler — Keelpillid: Viiul, Vioola, Tšello, Kontrabass (ulatus, vibrato, harmoonikud, eritehnoloogiad)',
+      'Adler — Vaskpuhkpillid: Trompet, Metsasarv, Tromboon, Tuuba (ulatus, artikulatsioon, summutid, vastupidavus)',
+      'Rimsky-Korsakov — I osa: Orkestrirühmad, kaheksakordamise põhimõtted, harmoonia alused',
+      'Adler — Keelpilliregistrite peatükk: divisi, seade, sektsiooni tasakaal',
+      'Hr. 6A: Orkestreerige Hr. 4A A-sektsioon keelpillide kvartetile — idiomaatiline vibato kogu ulatuses',
+      'Hr. 6B: 16-taktiline vaskpuhkpilli koraal (2 Tpt, Metsasarv, Tromb, Tuuba) — R-K tihe/lahtine harmoonia põhimõtted',
+    ],
+    gate:['Teadmiste Kontroll K1: Neli keelpillispetsiifilist tehnikat noodistusnõuetega (Adler)',
+      'Teadmiste Kontroll K2: Laiad intervallid bassis, tihedad ülemishääles — akustiline põhjendus (R-K)',
+      'Teadmiste Kontroll K3: Vaskpuhkpillide füüsilised piirangud mõjutavad fraasi pikkust ja dünaamikat (Adler)',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 6A ja 6B)',
+    ]},
+  m7:{ title:'Laiendatud Harmooniline Keel', subtitle:'Kahekümnenda Sajandi Harmoonia Kompositsioonile Rakendatuna',
+    tags:['Persichetti: Täistekst','Belkin: Harmoonia','Copland: 20. saj. Harmoonia'],
+    secs:['Lugemisülesanded','Kompositsiooniharjutused'],
+    items:[
+      'Persichetti — ptk. 1–4: Skaalamaterjal, moodused, akordide ehitamine väljaspool tertsiaalsust',
+      'Persichetti — ptk. 5–8: Polüakordid, toonide kobarad, kvartaalne harmoonia, lisanoodi akordid',
+      'Persichetti — ptk. 9–12: Modaalsus, atonaalsuse lähenemisviisid, harmooniline rütm',
+      'Copland — 20. sajandi Harmoonia peatükk (tonaalse süsteemi lagunemine ja taasintegreerimine)',
+      'Hr. 7A: Reharmoniseeri Hr. 5A B-sektsioon kasutades kvartaalset või modaalset harmoonia — põhjenda iga akordi kirjalikult',
+      'Hr. 7B: Lühike klaverivisand (16 takti) uurides ühte laiendatud tehnikat (polüakord, kobar või lisanoodi akord)',
+    ],
+    gate:['Teadmiste Kontroll K1: Ehita ja lahenda kvartaalne akord — pinge omadused vs. tertsiaalne septakord',
+      'Teadmiste Kontroll K2: Persichetti harmooniline rütm — kuidas see struktureerib edaspidist liikumist',
+      'Teadmiste Kontroll K3: Üks 20. saj. tehnika kasutatav idiomaatiliselt amatöörkoori jaoks',
+      '✦ Juhendaja Kriitika saadud ja kõik hindamiskriteeriumid täidetud (Hr. 7A ja 7B)',
+    ]},
+  m8:{ title:'Täielik Teos', subtitle:'Täielik Süntees — Segansambel, Kõik Tehnikad',
+    tags:['Kõik Kuus Teksti','Belkin: Suured Vormid','Adler: Täielik Orkestratsioon'],
+    secs:['Lugemisülesanded','Lõputöö Kompositsiooniprojekt'],
+    items:[
+      'Belkin — Suured Vormid: Sonaadivorm, Rondo, Läbikomponeeritud struktuurid',
+      'Adler — Transkriptsiooni ja Seadistamise peatükk (koolide ansamblite kaalutlused)',
+      'Belkin — ptk. 20: Täiustused (rõhk, kulminatsioon, proportsioon)',
+      'Belkin — Lisa A: Täielik uuesti lugemine integreeritud revisjonimeetodina',
+      'Etapp 1: Täielik visand — 2–3 min. tükk segaansamblile kasutades Belkini Lisa A meetodit',
+      'Etapp 2: Täielik partituur MuseScores — kõik dünaamikad, artikulatsioonid, tempod, märkused',
+      'Etapp 3: Eneseanalüüsi dokument — hinda kõigi kuue hindamiskategoria alusel Moodulitest 1–7',
+      'Etapp 4: Revisjon — rakenda juhendaja kriitika lõplikku partituuri',
+    ],
+    gate:['Täielik juhendaja kriitika lõpetatud kõigi kuue tagasiside kategooria lõikes',
+      'Muudetud lõplik partituur esitatud ja kinnitatud',
+      '✦ ✦ Õppekava Lõpetatud — kirjalik refleksioon kompositsionaalse kasvu kohta alates Moodulist 1',
+    ]},
+  o1:{ title:'Keelpillid', subtitle:'Viiul, Vioola, Tšello, Kontrabass — Ulatused, Tehnikad ja Levinud Vead',
+    tags:['Adler ptk. 1–5','Rimsky-Korsakov I osa','Vibato · Harmoonikud · Divisi · Idiomaatiline Kirjutus'],
+    secs:['Põhilugemine — Adler','Noodianalüüs'],
+    items:[
+      'Adler (2002) ptk. 1 — Viiul: lahtised keeled, registrid, vibato, harmoonikud, erivibuefektid',
+      'Adler (2002) ptk. 2 — Vioola: altvõti, iseloomulikud registrid, idiomaatiline kirjutus vs. tšello kaheksakordamine',
+      'Adler (2002) ptk. 3–4 — Tšello ja Kontrabass: tenooriregistri meloodia, oktaavi transpositsiooni lõks, C-laiend',
+      'Rimsky-Korsakov (1964) I osa — Keelpilligrupp: laiad vs. tihedad vahekaugused, registri ja resonantsi reeglid',
+      'Noodianalüüs: Analüüsi 16-taktiline keelpillikatkend Brahmsi Sümfooniast nr 1, I osa. Märgi iga osa kasutatud register',
+      'Noodianalüüs: Leia tšello meloodiakatkend Dvořákilt või Elgarilt. Tuvasta, millises registris meloodia asub',
+    ],
+    gate:['Teadmiste Kontroll K1: Esita kontrabassi kõlav ulatus antud kirjutatud katkendist E2–D4. Millised on tegelikud kõlavad helid?',
+      'Teadmiste Kontroll K2: Üliõpilane kirjutab viiuli meloodia Es6-le 8 taktiks mf amatöörorkestri kontekstis. Tuvasta probleem',
+      '✦ Värav: Esita 1-leheküljeline kirjalik kriitika keelpillikirjutusest ühes Haydni keelpillikvarteti osas',
+    ]},
+  o2:{ title:'Puupuhkpillid', subtitle:'Flööt, Oboe, Klarnet, Fagott — Registrid, Transpositsioonid ja Tasakaalu Lõksud',
+    tags:['Adler ptk. 6–8','Rimsky-Korsakov I osa','Transponatsioon · Registri Iseloom · Puupuhkpillide Paarid'],
+    secs:['Põhilugemine — Adler ja Rimsky-Korsakov','Noodianalüüs'],
+    items:[
+      'Adler (2002) ptk. 6 — Flööt ja Pikolo: kolm registrit, madala registri nõrkus, flutter-keel, col legno ekvivalendid',
+      'Adler (2002) ptk. 6 — Oboe ja Inglise Sarv: ninaregistri kvaliteet, vastupidavus, piiratud pianissimo madala registris; inglise sarve transponatsioon',
+      'Adler (2002) ptk. 7 — Klarnet: B-klarnet ja A-klarnet, katkestuskoht (B3–C4 kirjutatud), chalumeau/clarion/altissimo registrid',
+      'Adler (2002) ptk. 7 — Fagott ja Kontrafagott: tenoori/bassi register, staccato iseloom, CF oktaavi transponatsioon; Rimsky-Korsakov puupuhkpillide paaride kohta',
+      'Noodianalüüs: Uuri puupuhkpillikirjutust Mozarti Sümfoonia nr 40 avauses, I osa. Iga puupuhkpilli sisseastumise kohta: instrument, kirjutatud noot, kõlav noot, register',
+      'Noodianalüüs: Leia katkend, kus Rimsky-Korsakov paari puupuhkpilli tertsides või sekstides (nt Scheherazade)',
+    ],
+    gate:['Teadmiste Kontroll K1: B-klarneti partiis on kirjutatud noot D5. Mis heli kostab saalist? Nüüd: A-klarnet mängib sama kirjutatud nooti. Mis heli kostab?',
+      'Teadmiste Kontroll K2: Üliõpilane kirjutab flöödi meloodia B3-le (kirjutatud) märgitud pp, kaheksakordatud oboega samal helikõrgusel. Tuvasta kaks probleemi',
+      '✦ Värav: Transponeeri 8-taktiline meloodia B-klarneti jaoks kontserthelisse ja tagasi. Seejärel kirjuta ümber inglise sarve jaoks',
+    ]},
+  o3:{ title:'Vaskpuhkpillid', subtitle:'Metsasarv, Trompet, Tromboon, Tuuba — Võim, Vastupidavus ja Tasakaalu Probleem',
+    tags:['Adler ptk. 9–11','Rimsky-Korsakov I osa','Metsasarve transponatsioon · Summutid · Vaskpuhkpillid vs. orkester'],
+    secs:['Põhilugemine — Adler ja Rimsky-Korsakov','Noodianalüüs'],
+    items:[
+      'Adler (2002) ptk. 9 — Vaskpuhkpillide ülevaade: ülekaalamine/harmooniline seeria, suupistevormi kujud, summutid ja nende mõjud',
+      'Adler (2002) ptk. 10 — Metsasarv F-s: P5 transponatsioon, tummad noodid, käesulgemine, solo vs. ansambli iseloom, vastupidavuse piirid',
+      'Adler (2002) ptk. 10 — Trompet (B): M2 transponatsioon, registrid, vastupidavus, ere vs. summutatud iseloom; Tromboon: libisemistehnika, glissando, legato piirid',
+      'Adler (2002) ptk. 11 — Vaskpuhkpillide kombinatsioonid: kuidas tasakaalustada vaskpuhkpille keelpillide ja puupuhkpillide üle',
+      'Noodianalüüs: Uuri vaskpuhkpillikirjutust Beethoveni Sümfoonia nr 5 finaalis. Loe trompetite pidevmängimise takte',
+      'Noodianalüüs: Leia katkend, kus metsasarvi kasutatakse puupuhkpillide ja vaskpuhkpillide sillana (nt Brahms või Strauss)',
+    ],
+    gate:['Teadmiste Kontroll K1: Metsasarv on kirjutatud C4-le. Mis heli kostab saalist? Üliõpilane kirjutab B4 trompetile. Mis kõlab?',
+      'Teadmiste Kontroll K2: Tutvu antud 8-taktilise messingpuhkpilli katkendiga. Tuvasta kolm spetsiifilist orkestreerimise probleemi',
+      '✦ Värav: Kirjuta 8-taktiline vaskpuhkpilli koraal (4 metsasarve, 3 trompetit, 3 trombooni, tuuba). Iga häälel peab olema idiomaatiline ulatus',
+    ]},
+  o4:{ title:'Löökpillid', subtitle:'Timpanid, Marimbafon, Suured Löökpillid — Üllatavad Faktid ja Kirjutamise Piirangud',
+    tags:['Adler ptk. 12–14','Rimsky-Korsakov I osa','Timpanite häälestamine · Kaheksakordamine · Transponatsioon'],
+    secs:['Põhilugemine — Adler ja Rimsky-Korsakov','Noodianalüüs'],
+    items:[
+      'Adler (2002) ptk. 12 — Timpanid: häälestamine, häälestusmuutus partii sees, roll, ühetooniline vs. mitmehäälne kirjutus',
+      'Adler (2002) ptk. 13 — Meloodilised löökpillid: marimbafon, ksülofon, vibraafon, kellukemäng (transponatsioon!), gong, tsilindrid',
+      'Adler (2002) ptk. 14 — Löökpillide ansamblid ja orkestratsioon: standardne komplekt, erialternatiivsed instrumendid, kompositsiooniliste rollide jaotamine',
+      'Rimsky-Korsakov — I osa: Löökpillid harmoonilistel eesmärkidel, timpanite harmooniline roll',
+      'Noodianalüüs: Uuri timpanipartiid Brahmsi Sümfoonias nr 4, I osas. Kaardista iga häälestuse muutus. Kas iga muutus on teostatav antud taktide arvuga?',
+      'Noodianalüüs: Leia kellukemängu või ksülofonikatkend ühest tutvustatud partituurist. Kirjuta üles nii kirjutatud kui kõlavad helid',
+    ],
+    gate:['Teadmiste Kontroll K1: Kellukemäng on kirjutatud C5-le. Mis kõlab? Ksülofon on kirjutatud C4-le. Mis kõlab?',
+      'Teadmiste Kontroll K2: Üliõpilane kirjutab timpanile häälestusmuutuse noodist F2 noodile H2 kolme taktiga mõõduka tempos. Kas see on teostatav?',
+      '✦ Värav: Kirjuta 8-taktiline löökpillipartii standardse orkestri löökpillikomplektile (4 timpanit, snare drum, bass drum, taldrikud, triangel)',
+    ]},
+  o5:{ title:'Harf ja Klaver', subtitle:'Pedaalide Süsteem, Glissandod ja Idiomaatiline Kirjutus',
+    tags:['Adler ptk. 15–16','Rimsky-Korsakov I osa','Harfi pedaaliagramm · Klaveritehnikad · Idiomaatiline kirjutus'],
+    secs:['Põhilugemine — Adler ja Rimsky-Korsakov','Noodianalüüs'],
+    items:[
+      'Adler (2002) ptk. 15 — Harf: pedaalide süsteem, helistiku seaded, glissandod, harmonikud, mida ei saa harfil mängida',
+      'Adler (2002) ptk. 16 — Klaver orkestris: helid ja klaviatuur kui orkestri element, orkestraalse klaveri vs. sooloklaveri kirjutus',
+      'Rimsky-Korsakov — I osa: Harfi roll ja kasutus orkestris; arpeggios ja dekoratiivsed harfifigurationid',
+      'Noodianalüüs: Uuri harfijada Raveli "Boleros" või "Daphnis et Chloé-s". Tee pedaalidiagramm iga harfirühma jaoks',
+      'Noodianalüüs: Leia katkend, kus klaverit kasutatakse kui orkestri elementi (mitte soolopartii). Analüüsi selle tekstuuri ja funktsiooni',
+    ],
+    gate:['Teadmiste Kontroll K1: Helilooja tahab harfi glissandot, mis kõlab Fis-duuris. Kirjeldage pedaalide asendid igas klahvis',
+      'Teadmiste Kontroll K2: Üliõpilane kirjutab harfile kiire kromatilise liinitükki. Miks on see füüsiliselt võimatu ja mis on alternatiiv?',
+      '✦ Värav: Kirjuta harfi ja klaveri jaoks 8-taktiline idiomaatiline katkend orkestrikontekstis. Lisa pedaaldiagramm harfiosale',
+    ]},
+  o6:{ title:'Tasakaal ja Kombinatsioon', subtitle:'Täielik Orkestraalne Tasakaal — Sektsioonide Kombineerimine ja Tuttikirjutus',
+    tags:['Adler ptk. 17–19','Rimsky-Korsakov I osa','Tuttikirjutus · Sektsioonide Kombineerimine · Instrumentatsiooni Kontroll-nimekiri'],
+    secs:['Põhilugemine — Adler ja Rimsky-Korsakov','Noodianalüüs'],
+    items:[
+      'Adler (2002) ptk. 17 — Orkestri tasakaal: dünaamikakirjutus eri sektsioonidele, registri ja tugevuse suhe',
+      'Adler (2002) ptk. 18 — Sektsioonide kombineerimine: keelpillid + puupuhkpillid, keelpillid + vaskpuhkpillid, täisorkester',
+      'Adler (2002) ptk. 19 — Tutti orkestratsioon: tuttikordade kirjutamine, melanž vs. koloristlik orkestatsioon, tekstuuripõhimõtted',
+      'Rimsky-Korsakov — I osa: Orkestri rühmade kombinatsioonid, resonantsi põhimõtted täistekstuuris',
+      'Noodianalüüs: Uuri Brahmsi Sümfoonia nr 2, IV osa kliimaksi. Tuvasta: millised sektsioonid mängivad, mis dünaamikal, mis registris',
+      'Noodianalüüs: Uuri ühte Debussy orkestriteo katkendist. Analüüsi, kuidas ta saavutab tasakaalu ilma ühekordse tuttiga',
+    ],
+    gate:['Teadmiste Kontroll K1: Oboele on antud meloodia ff koos kolme trompetiga ff. Mis juhtub? Kuidas seda parandada?',
+      'Teadmiste Kontroll K2: Kirjelda Rimsky-Korsakovi kolmikud kombineerimise põhimõtet: mis on laiapõhjalisuse põhiidee madala registri puhul?',
+      '✦ Värav: Kirjuta 8-taktiline tutti-orkestrikatkend (keelpillid + puupuhkpillid + vaskpuhkpillid). Lisa iga sektsiooni dünaamikaanalüüs',
+    ]},
 };
 
 const MODULES = [
@@ -2991,15 +3516,15 @@ function renderXP(prevXP) {
 
   document.getElementById('xp-current').textContent = xp;
   document.getElementById('level-badge').textContent = lv.icon;
-  document.getElementById('level-name').textContent = lv.name;
-  document.getElementById('level-num').textContent = `Level ${lv.lvl}`;
+  document.getElementById('level-name').textContent = levelName(lv);
+  document.getElementById('level-num').textContent = `${t('levelWord')} ${lv.lvl}`;
 
   const range = lv.max === 9999 ? (xp - lv.min) : (xp - lv.min);
   const span = lv.max === 9999 ? 200 : (lv.max - lv.min);
   const pct = Math.min(100, Math.round((range / span) * 100));
   document.getElementById('xp-bar').style.width = pct + '%';
   document.getElementById('xp-range-low').textContent = lv.min + ' XP';
-  document.getElementById('xp-range-high').textContent = lv.max === 9999 ? 'Max Level!' : `${lv.max} XP to Level ${lv.lvl+1}`;
+  document.getElementById('xp-range-high').textContent = lv.max === 9999 ? (CL==='et'?'Maksimaalne Tase!':'Max Level!') : `${lv.max} XP ${t('xpTo')} ${lv.lvl+1}`;
 
   // Total progress
   const totalCurrXP = MODULES.reduce((a,m) => a + [...m.sections.flatMap(s=>s.items), ...m.gate.items].reduce((b,i) => b+i.xp, 0), 0);
@@ -3048,7 +3573,7 @@ function renderAchievements() {
   const grid = document.getElementById('ach-grid');
   grid.innerHTML = '';
   const earned = ACHIEVEMENTS.filter(a => state.earned[a.id]).length;
-  document.getElementById('ach-count').textContent = `${earned} / ${ACHIEVEMENTS.length} earned`;
+  document.getElementById('ach-count').textContent = `${earned} / ${ACHIEVEMENTS.length} ${t('achEarned')}`;
   ACHIEVEMENTS.forEach(ach => {
     const e = state.earned[ach.id];
     grid.innerHTML += `<div class="badge ${e?'earned':''}">
@@ -3109,12 +3634,12 @@ function studyStripHTML(modId, unlocked) {
   const total = data.cards.length;
   const allFlipped = flipped >= total;
   const badgeClass = allFlipped ? 'card-badge complete' : 'card-badge';
-  const badgeText  = allFlipped ? '✓ All studied' : `${flipped} / ${total} studied`;
+  const badgeText  = allFlipped ? t('allStudied') : `${flipped} / ${total} studied`;
   const quizBtn = allFlipped
     ? `<button class="btn-quiz-ready" id="quiz-btn-${modId}" onclick="openQuizModal('${modId}')">📝 Take Quiz</button>`
     : `<button class="btn-quiz-locked" disabled title="Flip all cards first to unlock quiz">📝 Quiz locked — flip all cards first</button>`;
   return `<div class="study-strip" data-mod="${modId}">
-    <button class="btn-study" onclick="openCardModal('${modId}')">📚 Study Cards <span class="${badgeClass}">${badgeText}</span></button>
+    <button class="btn-study" onclick="openCardModal('${modId}')">${t('studyCards')} <span class="${badgeClass}">${badgeText}</span></button>
     ${quizBtn}
   </div>`;
 }
@@ -3134,7 +3659,7 @@ function updateStudyStrip(modId) {
   const badge = strip.querySelector('.card-badge');
   if (badge) {
     badge.className  = allFlipped ? 'card-badge complete' : 'card-badge';
-    badge.textContent = allFlipped ? '✓ All studied' : `${flipped} / ${total} studied`;
+    badge.textContent = allFlipped ? t('allStudied') : `${flipped} / ${total} studied`;
   }
   // Quiz button swap
   const existingQ = strip.querySelector('.btn-quiz-locked, .btn-quiz-ready');
@@ -3144,14 +3669,14 @@ function updateStudyStrip(modId) {
       btn.className = 'btn-quiz-ready';
       btn.id = `quiz-btn-${modId}`;
       btn.onclick = () => openQuizModal(modId);
-      btn.textContent = '📝 Take Quiz';
+      btn.textContent = t('takeQuiz');
       existingQ.replaceWith(btn);
     } else if (!allFlipped && existingQ.classList.contains('btn-quiz-ready')) {
       const btn = document.createElement('button');
       btn.className = 'btn-quiz-locked';
       btn.disabled  = true;
-      btn.title     = 'Flip all cards first to unlock quiz';
-      btn.textContent = '📝 Quiz locked — flip all cards first';
+      btn.title     = t('quizLockedTitle');
+      btn.textContent = t('quizLockedBtn');
       existingQ.replaceWith(btn);
     }
   }
@@ -3169,7 +3694,7 @@ function studyChipsInner(modId) {
   const inCooldown  = failRec && (Date.now() - failRec.timestamp < QUIZ_COOLDOWN_MS);
 
   const cardChip = allFlipped
-    ? `<span class="status-chip chip-green">📚 All studied</span>`
+    ? `<span class="status-chip chip-green">${t('chipAllStudied')}</span>`
     : `<span class="status-chip chip-dim">📚 ${flipped} / ${total}</span>`;
 
   let quizChip;
@@ -3177,9 +3702,9 @@ function studyChipsInner(modId) {
     const sc = quizPassed.score;
     quizChip = `<span class="status-chip chip-green">${sc===100?'✦ Perfect':'✓ Quiz passed'}</span>`;
   } else if (inCooldown) {
-    quizChip = `<span class="status-chip chip-red">⏳ Cooldown</span>`;
+    quizChip = `<span class="status-chip chip-red">${t('chipCooldown')}</span>`;
   } else {
-    quizChip = `<span class="status-chip chip-dim">📝 Quiz pending</span>`;
+    quizChip = `<span class="status-chip chip-dim">${t('chipPending')}</span>`;
   }
   return cardChip + quizChip;
 }
@@ -3265,7 +3790,7 @@ function renderCurrentCard() {
   const total = data.cards.length;
   const flipped = getFlippedCount(_cardModId);
   // Header
-  document.getElementById('card-mod-label').textContent = data.title;
+  document.getElementById('card-mod-label').textContent = (CL==='et' && MOD_ET[_cardModId]) ? MOD_ET[_cardModId].title : data.title;
   document.getElementById('card-progress-label').textContent = `${flipped} / ${total} studied`;
   // Card text
   document.getElementById('card-front-text').textContent  = card.front;
@@ -3279,7 +3804,7 @@ function renderCurrentCard() {
   // Nav buttons
   document.getElementById('btn-card-prev').disabled = (_cardIdx === 0);
   document.getElementById('btn-card-next').disabled = (_cardIdx === total - 1);
-  document.getElementById('card-nav-label').textContent = `${_cardIdx + 1} of ${total}`;
+  document.getElementById('card-nav-label').textContent = `${_cardIdx + 1} ${t('ofWord')} ${total}`;
 }
 
 // ═══════════════════════════════════════════
@@ -3332,7 +3857,7 @@ function renderQuizQuestion() {
   const total = _quizQuestions.length;
 
   // Header
-  document.getElementById('quiz-mod-label').textContent    = data.title;
+  document.getElementById('quiz-mod-label').textContent    = (CL==='et' && MOD_ET[_quizModId]) ? MOD_ET[_quizModId].title : data.title;
   document.getElementById('quiz-source-label').textContent = data.source;
   document.getElementById('quiz-counter').textContent      = `Q ${_quizIdx + 1} / ${total}`;
   document.getElementById('quiz-progress-fill').style.width = `${((_quizIdx) / total) * 100}%`;
@@ -3344,7 +3869,7 @@ function renderQuizQuestion() {
   let optionLabels, optionTexts;
   if (q.type === 'tf') {
     optionLabels = ['A', 'B'];
-    optionTexts  = ['True', 'False'];
+    optionTexts  = [t('trueOpt'), t('falseOpt')];
   } else {
     optionLabels = ['A', 'B', 'C', 'D'];
     optionTexts  = q.options;
@@ -3365,11 +3890,11 @@ function renderQuizQuestion() {
   const nextBtn = document.getElementById('btn-quiz-next');
   nextBtn.classList.remove('visible');
   // Last question label
-  nextBtn.textContent = (_quizIdx === total - 1) ? 'See Results →' : 'Next Question →';
+  nextBtn.textContent = (_quizIdx === total - 1) ? t('seeResults') : t('nextQ');
 
   // Live score
   document.getElementById('quiz-score-live').textContent =
-    _quizIdx === 0 ? 'Score: — / —' : `Score: ${_quizScore} / ${_quizIdx}`;
+    _quizIdx === 0 ? `${t('scoreColon')} — / —` : `${t('scoreColon')} ${_quizScore} / ${_quizIdx}`;
 
   _quizAnswered = false;
 }
@@ -3397,7 +3922,7 @@ function selectAnswer(idx) {
 
   // Live score update
   document.getElementById('quiz-score-live').textContent =
-    `Score: ${_quizScore} / ${_quizIdx + 1}`;
+    `${t('scoreColon')} ${_quizScore} / ${_quizIdx + 1}`;
 
   // Show next button
   document.getElementById('btn-quiz-next').classList.add('visible');
@@ -3433,13 +3958,13 @@ function showQuizResult() {
     delete state.quizFail[_quizModId];
     save();
 
-    titleEl.textContent = 'Quiz Passed';
+    titleEl.textContent = t('quizPassed');
     titleEl.className   = 'quiz-result-title pass';
     document.getElementById('quiz-result-msg').textContent =
-      'Your Knowledge Checks (K1–K3) are now unlocked. Complete them manually, then submit to your tutor for the gate review.';
+      t('passMsg');
     cooldownEl.style.display = 'none';
     closeBtn.className  = 'quiz-result-btn pass-btn';
-    closeBtn.textContent = 'Continue →';
+    closeBtn.textContent = t('continueBtn');
 
     // Unlock K items visually by re-rendering module
     const modData = MODULES.find(m => m.id === _quizModId);
@@ -3512,6 +4037,42 @@ function handleQuizOverlayClick(e) {
 }
 
 
+
+// ─── ET LABEL HELPERS ───────────────────
+function modTitle(mod)    { return CL==='et' && MOD_ET[mod.id] ? MOD_ET[mod.id].title    : mod.title; }
+function modSubtitle(mod) { return CL==='et' && MOD_ET[mod.id] ? MOD_ET[mod.id].subtitle : mod.subtitle; }
+function modTags(mod)     { return CL==='et' && MOD_ET[mod.id] ? MOD_ET[mod.id].tags     : mod.tags; }
+
+function secTitle(mod, sIdx, sec) {
+  if (CL==='et' && MOD_ET[mod.id] && MOD_ET[mod.id].secs && MOD_ET[mod.id].secs[sIdx])
+    return MOD_ET[mod.id].secs[sIdx];
+  // fallback: map standard English section titles
+  const m = { 'Core Reading':t('sectionCoreReading'), 'Reading Assignments':t('sectionReading'),
+    'Score & Listening Study':t('sectionScoreListen'), 'Composition Exercises':t('sectionComposition'),
+    'Score Study':t('sectionScore'), 'Capstone Composition Project':t('sectionCapstone'),
+    'Core Reading — Adler':t('sectionCoreAdler'), 'Core Reading — Adler & Rimsky-Korsakov':t('sectionCoreAdlerRK') };
+  return CL==='et' ? (m[sec.title] || sec.title) : sec.title;
+}
+
+function itemLabel(mod, globalIdx, item) {
+  if (CL==='et' && MOD_ET[mod.id] && MOD_ET[mod.id].items && MOD_ET[mod.id].items[globalIdx])
+    return MOD_ET[mod.id].items[globalIdx];
+  return item.label;
+}
+
+function gateItemLabel(mod, gIdx, item) {
+  if (CL==='et' && MOD_ET[mod.id] && MOD_ET[mod.id].gate && MOD_ET[mod.id].gate[gIdx])
+    return MOD_ET[mod.id].gate[gIdx];
+  return item.label;
+}
+
+function phaseLabel(phaseIdx) {
+  const names = t('phases');
+  return names[phaseIdx] || '';
+}
+
+function levelName(L) { return CL==='et' ? (L.nameEt||L.name) : L.name; }
+
 function render() {
   const container = document.getElementById('modules-container');
   container.innerHTML = '';
@@ -3523,7 +4084,7 @@ function render() {
       lastPhase = mod.phase;
       const pl = document.createElement('div');
       pl.className = 'phase-label';
-      pl.innerHTML = `<span>${PHASES[mod.phase].label}</span>`;
+      pl.innerHTML = `<span>${CL==='et' ? t('phases')[mod.phase] || PHASES[mod.phase].label : PHASES[mod.phase].label}</span>`;
       container.appendChild(pl);
     }
 
@@ -3543,19 +4104,21 @@ function render() {
     const circ = 2 * Math.PI * 15.9;
     const offset = circ - (circ * pct / 100);
 
-    const sectionsHTML = mod.sections.map(sec => `
+    const sectionsHTML = mod.sections.map((sec, sIdx) => {
+      let _itemOffset = mod.sections.slice(0, sIdx).reduce((a,s)=>a+s.items.length, 0);
+      return `
       <div class="section">
-        <div class="section-title">${sec.title}</div>
-        ${sec.items.map(item => itemHTML(item)).join('')}
+        <div class="section-title">${secTitle(mod, sIdx, sec)}</div>
+        ${sec.items.map((item, iIdx) => itemHTMLWithLabel(item, gateItemLabel(mod, _itemOffset + iIdx, item))).join('')}
       </div>
-    `).join('');
+    `}).join('');
 
     const kLocked = !state.quizPass[mod.id];
     const gateHTML = `
       <div class="gate-box">
         <div class="gate-title">⬡ Evaluation Gate — Do Not Advance Until Complete</div>
         ${kLocked ? '<div class="quiz-pass-notice">🔒 Pass the module quiz above to unlock Knowledge Checks K1–K3</div>' : ''}
-        ${mod.gate.items.map(item => itemHTML(item)).join('')}
+        ${mod.gate.items.map((item, gIdx) => itemHTMLWithLabel(item, gateItemLabel(mod, gIdx, item))).join('')}
       </div>
     `;
 
@@ -3565,8 +4128,8 @@ function render() {
       <div class="module-header" onclick="toggleModule('${mod.id}')">
         <div class="module-num">MODULE ${mod.num}</div>
         <div class="module-title-block">
-          <div class="module-title">${mod.title}</div>
-          <div class="module-subtitle">${mod.subtitle}</div>
+          <div class="module-title">${modTitle(mod)}</div>
+          <div class="module-subtitle">${modSubtitle(mod)}</div>
           <div class="module-meta">${mod.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
           ${unlocked ? `<div class="study-status-chips" id="chips-${mod.id}">${studyChipsInner(mod.id)}</div>` : ''}
           <div class="lock-msg">🔒 Complete the previous module's evaluation gate to unlock</div>
@@ -3617,6 +4180,21 @@ function itemHTML(item) {
     <div class="xp-tag">+${item.xp} XP</div>
   </div>`;
 }
+
+function itemHTMLWithLabel(item, label) {
+  const done = state.checked[item.id];
+  if (isKItem(item.id) && !state.quizPass[kItemModId(item.id)]) {
+    return `<div class="check-item quiz-locked-item" title="${t('quizLockedTitle')}">
+      <div class="check-box" style="font-size:0.75rem">🔒</div>
+      <div class="check-label">${label}<span class="xp-tag">${item.xp} XP</span></div>
+    </div>`;
+  }
+  return `<div class="check-item ${done?'done':''}" data-id="${item.id}" onclick="toggleItem('${item.id}','${item.xp}',this)">
+    <div class="check-box"></div>
+    <div class="check-label">${label}<span class="xp-tag">${item.xp} XP</span></div>
+  </div>`;
+}
+
 
 // ═══════════════════════════════════════════
 // INTERACTION
@@ -3793,12 +4371,12 @@ function starBurst(el) {
 // ═══════════════════════════════════════════
 function showGateModal(msg, ach, prevXP) {
   document.getElementById('modal-icon').textContent  = ach ? ach.icon : '🎉';
-  document.getElementById('modal-title').textContent = msg.title;
-  document.getElementById('modal-subtitle').textContent = msg.sub;
+  document.getElementById('modal-title').textContent = CL==='et' ? (msg.titleEt||msg.title) : msg.title;
+  document.getElementById('modal-subtitle').textContent = CL==='et' ? (msg.subEt||msg.sub) : msg.sub;
   document.getElementById('modal-body').textContent  = msg.body;
-  document.getElementById('modal-xp').textContent   = `+75 XP earned`;
+  document.getElementById('modal-xp').textContent   = t('xpEarned');
   const badgeEl = document.getElementById('modal-badge');
-  if (ach) { badgeEl.textContent = '🏆 Achievement Unlocked: ' + ach.name; badgeEl.style.display='inline-block'; }
+  if (ach) { badgeEl.textContent = t('achUnlocked') + (CL==='et' ? (ach.nameEt||ach.name) : ach.name); badgeEl.style.display='inline-block'; }
   else      { badgeEl.style.display='none'; }
   document.getElementById('modal-overlay').classList.add('visible');
 }
@@ -3906,11 +4484,23 @@ function drawVex(containerId, data) {
   }
 }
 
+// Restore saved language
+try { const sl = localStorage.getItem('compLang'); if(sl) { CL=sl; } } catch(e){}
+if (CL==='et') {
+  document.getElementById('lb-en').classList.remove('active');
+  document.getElementById('lb-et').classList.add('active');
+}
 updateStreak();
 render();
-renderXP();
+renderXP ? renderXP() : null;
 renderStreak();
 renderAchievements();
+// Apply static data-en/et translations
+setTimeout(() => {
+  document.querySelectorAll('[data-en]').forEach(el => {
+    if (CL==='et') el.textContent = el.dataset.et || el.dataset.en;
+  });
+}, 0);
 
 // Re-check earned achievements from saved state on load
 const lv = getLevel(state.totalXP);
